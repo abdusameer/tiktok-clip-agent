@@ -1,0 +1,70 @@
+{
+  "_comment": "Source of truth for the approved ranking template (extracted from render.py that produced 6a6f378350ec.tt1-best-roasts.tiktok-final.mp4). Do not approximate.",
+  "version": 1,
+  "canvas": {"width": 1080, "height": 1920, "fps": 30},
+  "source": {"width": 1280, "height": 720},
+  "framing": {
+    "keep_height": 630,
+    "band_y": 620,
+    "crop_note": "Keeps top 630 of 720 rows (87.5%) so the burned-in caption strip never appears, even in the blurred backdrop."
+  },
+  "background": {"blur_sigma": 40, "brightness": -0.22, "saturation": 0.9},
+  "fonts": {
+    "bold": "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "black": "/System/Library/Fonts/Supplemental/Arial Black.ttf",
+    "renderer_python": "/usr/bin/python3"
+  },
+  "safe_margins": {"top_clear_px": 200, "bottom_ui_start_px": 1440, "bottom_limit_px": 1470, "side_px": 120},
+  "header": {
+    "dy": 55, "title_size": 58, "title_y": 150, "title_stroke": 5, "title_shadow": 5, "title_max_width": 940,
+    "chip_width": 118, "chip_gap": 18, "chip_y": 245, "chip_height": 52, "chip_radius": 26, "chip_text_size": 32, "chip_text_dy": 7,
+    "chip_current_fill": [255, 255, 255, 235], "chip_other_fill": [0, 0, 0, 120],
+    "chip_current_text": [20, 20, 20, 255], "chip_other_text": [255, 255, 255, 150]
+  },
+  "badge": {"y": 350, "height": 230, "size": 190, "font": "black", "stroke": 10, "shadow": 6, "fade_in": 0.3, "slide_px": 46, "slide_seconds": 0.35},
+  "label": {
+    "y": 1040, "height": 100, "size": 50, "font": "bold", "text_y": 22,
+    "color": [255, 255, 255, 255],
+    "background": {"pad_x": 34, "pad_y": 14, "radius": 30, "fill": [0, 0, 0, 140]},
+    "show_seconds": 2.0, "single_show_seconds": 3.0, "fade_seconds": 0.3, "rise_px": 24,
+    "title_accent": {
+      "enabled": true,
+      "palette": [{"name": "yellow", "hex": "#FFD84D"}, {"name": "cyan", "hex": "#58D9FF"}, {"name": "green", "hex": "#8BE36B"},
+                  {"name": "orange", "hex": "#FF9F43"}, {"name": "pink", "hex": "#FF7EB6"}, {"name": "lavender", "hex": "#C9A7FF"},
+                  {"name": "white", "hex": "#FFFFFF"}],
+      "fallback": "#FFFFFF",
+      "min_contrast": 4.5,
+      "reference_backdrop": [128, 128, 128],
+      "no_consecutive_repeat": true,
+      "seed": "run id + source video id + video title: re-rendering the same video reproduces the same color",
+      "rules": "ONE solid palette accent color per finished video, applied consistently to every title/headline in it (different videos may differ). Font, size, badge, label background, placement, animation, safe margins, crop and blurred background are unchanged. No gradients, per-letter colors, flashing or colors outside the palette."
+    },
+    "shows": "title_only",
+    "shows_note": "The big badge is the single visible rank number. The label pill shows only the title; rank+title are combined as '#N Title' for manifests/QA only."
+  },
+  "captions": {
+    "burned_in_handling": "crop_out_bottom_strip",
+    "y": 1190, "height": 280, "size": 66, "font": "bold", "stroke": 7, "shadow": 6, "max_width": 840, "line_spacing": 1.12, "max_lines": 2,
+    "lead_seconds": 0.04, "tail_seconds": 0.30, "min_seconds": 0.6, "gap_seconds": 0.03
+  },
+  "hook": {"text": "wait for #1", "size": 40, "y": 318, "height": 70, "fill": [255, 255, 255, 215], "stroke": 3, "shadow": 4,
+           "fade_in_start": 0.2, "fade_in": 0.3, "fade_out_start": 2.3, "fade_out": 0.5},
+  "audio": {"source": "original", "edge_fade_seconds": 0.03, "sample_rate": 48000, "codec": "aac", "bitrate": "192k", "bleep_profanity": false},
+  "video_encode": {"codec": "libx264", "preset": "medium", "crf": 18, "profile": "high", "pix_fmt": "yuv420p"},
+  "container": {"faststart": true},
+  "limits": {"min_ranks": 4, "max_ranks": 5,
+             "moment_min_seconds": 5, "moment_max_seconds": 30, "moment_max_tolerance_seconds": 0.5,
+             "moment_note": "Each ranked moment normally lasts ~5-30 s (the user allows 20-30 s clips and ~1:30 videos): the shortest span that keeps setup, complete dialogue/action, the joke and the reaction/payoff. Shorter than 5 s only when completely understandable (complete_when_short). Never stretched to reach 5 s.",
+             "video_platform_max_seconds": 600,
+             "video_note": "No 60 s ceiling: a video is only as long as its 4-5 moments require. 600 s is TikTok's own upload limit, the only technical cap.",
+             "title_min_words": 2, "title_max_words": 5, "headline_min_words": 2, "headline_max_words": 6},
+  "standalone": {"_comment": "Single-moment format: same crop, blurred backdrop, safe margins, audio and captions; NO ranking header, chips, badge, label or hook. One complete scene: short (5-17 s) when the whole moment works, longer when setup and payoff need it. No maximum other than the platform limit.",
+                 "min_seconds": 5},
+  "production": {"approved_dir": "approved", "needs_review_dir": "needs-review", "max_videos_per_run": null,
+                 "approval_marker": "auto_qa_approved"},
+  "analysis": {"version": 1, "frame_step_seconds": 3.0, "max_frames": 600, "thumb_width": 480, "scene_threshold": 0.3, "scene_min_gap_seconds": 0.6,
+              "contact_sheet_cols": 6, "contact_sheet_rows": 4, "motion_fps": 2, "signal_step_seconds": 0.5,
+              "ocr_bottom_fraction": 0.25, "ocr_top_fraction": 0.40, "burned_in_caption_fraction": 0.25,
+              "min_candidate_seconds": 3.0, "reaction_min_loud_steps": 2, "max_visual_candidates": 20, "max_reaction_candidates": 20, "max_candidates": 140,
+              "youtube_format": "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[height<=720][vcodec^=avc1]/bv*[height<=720]+ba/b[height<=720]"}
+}
