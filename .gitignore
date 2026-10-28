@@ -37,3 +37,8 @@ source_library/
 *.mov
 *.jpg
 *.png
+
+# generated run logs (may contain signed upload URLs)
+logs/
+sourcevideo/*
+!sourcevideo/.gitkeep

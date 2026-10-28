@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 
-from . import config, source_library
+from . import config, models, source_library
 
 DEFAULT_MODEL = "small.en"
 
@@ -54,7 +54,7 @@ def decode_audio(media: Path):
 def _whisper_run(media: Path, model_name: str, progress: Callable[[float], None] | None) -> tuple[list[dict], dict]:
     from faster_whisper import WhisperModel
 
-    model = WhisperModel(model_name, device="cpu", compute_type="int8")
+    model = models.whisper(model_name)
     gen, info = model.transcribe(decode_audio(media), vad_filter=True, word_timestamps=True)
     segments = []
     for seg in gen:

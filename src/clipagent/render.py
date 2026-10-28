@@ -57,6 +57,9 @@ def png_spec(spec: dict, order: list[str], workdir: Path, labels: dict | None = 
         rects, blocks = [], [{"text": spec["title"], "font": "bold", "size": h["title_size"], "cx": W // 2, "y": h["title_y"] + HDR_DY,
                               "stroke": h["title_stroke"], "shadow": h["title_shadow"], "max_width": h["title_max_width"]}]
         cw, gap = h["chip_width"], h["chip_gap"]
+        avail = W - 2 * _S["safe_margins"]["side_px"]
+        if n * cw + (n - 1) * gap > avail:                    # more ranks than the template's 118 px chips fit: shrink chips (approved size up to 6)
+            cw = max(40, (avail - (n - 1) * gap) // n)
         x0 = (W - (n * cw + (n - 1) * gap)) // 2
         for j, r in enumerate(order):
             x = x0 + j * (cw + gap)
@@ -146,7 +149,7 @@ def audio_command(spec, order, media, out):
         d = frame_exact(m)
         inputs += ["-ss", f"{m['start']}", "-t", f"{d}", "-i", str(media)]
         chains.append(f"[{i}:a]afade=t=in:st=0:d={ef},afade=t=out:st={d - ef:.3f}:d={ef},aresample={au['sample_rate']}[a{i}]")
-    join = "".join(f"[a{i}]" for i in range(len(order))) + f"concat=n={len(order)}:v=0:a=1[aout]"
+    join = "".join(f"[a{i}]" for i in range(len(order))) + f"concat=n={len(order)}:v=0:a=1,alimiter=limit=0.85:attack=2:release=40:level=disabled[aout]"       # peak limiter (-1.4 dBFS, headroom for AAC overshoot): loud streamers never clip
     return (["ffmpeg", "-v", "error", "-y"] + inputs + ["-filter_complex", ";".join(chains + [join]), "-map", "[aout]",
             "-c:a", au["codec"], "-b:a", au["bitrate"], str(out)])
 

@@ -26,6 +26,9 @@ PRONOUN = re.compile(r"^(he|she|they|it|his|her|their|him|them|this|that|these|t
 PHASES = ("beginning", "setup", "main_action", "reaction_payoff", "ending")
 CONF = ("high", "medium", "low", "uncertain")
 FORMATS = ("ranking", "funny", "continuous", "standalone", "rejected")
+TREATMENTS = ("minimal_continuous", "tightened_continuous", "standalone_punchline", "reaction_led", "context_headline", "cold_open_context",
+              "full_story", "ranking_montage", "themed_montage")
+EDITORIAL = ("treatment", "runner_up", "trim_reason", "duration_reason", "added_value", "standalone_reuse", "edit_decisions", "hook_used")
 
 
 class AnalysisError(Exception):
@@ -712,10 +715,18 @@ def apply_reviews(source_id: str, reviews: list[dict], root=None) -> dict:
                     raise AnalysisError(f"{c['id']}: {k} is required for a {fmt} candidate")
             if "uncertain" in (r["audio_confidence"], r["visual_confidence"]) or r["works_without_context"] == "uncertain":
                 raise AnalysisError(f"{c['id']}: uncertain evidence cannot be {fmt}; reject it or fix the evidence")
+            if fmt in ("funny", "continuous"):                      # /make-content editorial record: every cut and the length needs a reason
+                if r.get("treatment") not in TREATMENTS:
+                    raise AnalysisError(f"{c['id']}: treatment must be one of {TREATMENTS}")
+                for k in ("duration_reason", "added_value"):
+                    if not (r.get(k) or "").strip():
+                        raise AnalysisError(f"{c['id']}: {k} is required for a {fmt} candidate")
+                if (r.get("use_start") is not None or r.get("use_end") is not None) and not (r.get("trim_reason") or "").strip():
+                    raise AnalysisError(f"{c['id']}: trim_reason is required when use_start/use_end trims the segment")
         c["review"] = {"status": "reviewed", "reviewed_at": datetime.now(timezone.utc).isoformat(),
                        **{k: r.get(k) for k in ("visible_action", "works_without_context", "hook", "setup", "payoff", "audio_confidence",
                                                 "visual_confidence", "suggested_format", "rejection_reason", "viewed_frames", "title", "category",
-                                                "use_start", "use_end")}}
+                                                "use_start", "use_end", *EDITORIAL)}}
         done.append(c["id"])
     _write(lib / "analysis" / "candidates.json", data)
     return {"reviewed": done, "remaining": sum(1 for c in data["candidates"] if c["review"]["status"] != "reviewed")}

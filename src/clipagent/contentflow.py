@@ -17,7 +17,9 @@ from . import captions as captions_mod
 from . import cleanup, colors, config, cutqa, framing, fullanalysis, layout, plan as plan_mod, qa, registry, render, runs, source_library, style, textsafety, titles
 from .status import RunStatus
 
-FORMAT_DIR = {"ranking": "rankings", "funny": "funny-moments", "continuous": "continuous-moments"}
+FORMAT_DIR = {"ranking": "rankings", "funny": "funny-moments", "continuous": "continuous-moments"}       # working/ + plan file names (internal)
+APPROVED_ROOT = "approved_clips"
+APPROVED_DIR = {"ranking": "rankings", "funny": "standalone/funny", "continuous": "standalone/continuous"}   # approved_clips/<this>/<run>/<ID-slug>/
 PREFIX = {"ranking": "R", "funny": "F", "continuous": "C"}
 HALLUCINATION = re.compile(r"thanks for watching|subscribe|see you (in the )?next|^bye\b|like and", re.I)
 PROFANITY = re.compile(r"\b(fuck\w*|shit\w*|bitch|ass|dick|pussy)\b", re.I)
@@ -79,21 +81,20 @@ def _tokens(c: dict) -> list[str]:
 
 
 def _partition(n: int) -> list[int]:
-    """Ranking group sizes (4 or 5 moments each) for n same-category candidates; leftovers return as a negative remainder."""
-    sizes, left = [], n
-    while left >= 4:
-        if left >= 9 or left in (5, 7):
-            take = 5
-        elif left in (6,):
-            take = 5
-        else:                                  # 4 or 8
-            take = 4
-        sizes.append(take)
-        left -= take
-    return sizes + ([-left] if left else [])
+    """Ranking group sizes for n same-theme candidates: ONE ranking holding every honest entry (no padding, no 4-5 quota).
+
+    Fewer than min_ranks cannot make a ranking (returned as a negative remainder -> standalone treatment). Only the countdown header's
+    technical limit (layout_max_ranks) splits a very large theme, into balanced parts that each keep at least min_ranks entries."""
+    lim = style.load()["limits"]
+    lo, hi = lim["min_ranks"], lim.get("layout_max_ranks") or n
+    if n < lo:
+        return [-n] if n else []
+    parts = -(-n // hi)                      # ceil
+    base, extra = divmod(n, parts)
+    return [base + (1 if i < extra else 0) for i in range(parts)]
 
 
-def build_plan(run_id: str, root=None) -> dict:
+def build_plan(run_id: str, root=None, snap_fn=None) -> dict:
     """Allocate every reviewed segment to ONE format and write plan/{rankings,funny-moments,continuous-moments,rejected}.json."""
     root = _root(root)
     d = run_dir_for(run_id, root)
@@ -112,6 +113,10 @@ def build_plan(run_id: str, root=None) -> dict:
             rejected.append({**base, "reason": rv["rejection_reason"]})
             continue
         a, b = rv.get("use_start") or c["start"], rv.get("use_end") or c["end"]
+        if snap_fn and not registry.conflicts(sha, a, b, root=root, ignore_run=run_id):   # (already-used scenes are rejected below; no need to decode them)
+            # never cut through a spoken word (QA would fail it): snap to clean cut points
+            a, b = snap_fn(_lib(sid, root) / "master.mp4", a, b,
+                           ok=lambda x, y: not registry.conflicts(sha, x, y, root=root, ignore_run=run_id))   # never snap into an already-used scene
         bad = registry.conflicts(sha, a, b, root=root, ignore_run=run_id)
         if bad:
             rejected.append({**base, "reason": "already used or reserved: " + bad[0]})
@@ -138,7 +143,7 @@ def build_plan(run_id: str, root=None) -> dict:
         if u["format"] == "ranking":
             groups.setdefault((u["category"] or "Wild Moments").strip(), []).append(u)
     ranking_videos, leftovers = [], []
-    for cat, items in groups.items():
+    for cat, items in groups.items():                                  # RANKING PASS: every honest entry of a theme, never padded
         items = [i for i in sorted(items, key=lambda x: x["humor"]) if title_ok(i, "ranking") and not used_titles.add(i["title"].lower())]
         parts = _partition(len(items))
         pos, n_part = 0, 0
@@ -149,42 +154,143 @@ def build_plan(run_id: str, root=None) -> dict:
             chunk = items[pos:pos + size]
             pos += size
             n_part += 1
-            ranking_videos.append({"category": cat if n_part == 1 and len(parts) == 1 else f"{cat} Part {n_part}", "items": chunk})
-    for u in leftovers:                         # not enough same-category moments for a ranking: best use is a short funny moment
+            ranking_videos.append({"category": cat if len(parts) == 1 else f"{cat} Part {n_part}", "items": chunk})
+    for u in leftovers:                         # too few honest same-theme moments for a ranking: its best use is a standalone
         used_titles.discard((u["title"] or "").lower())
         u["format"] = "funny"
         singles.append(u)
     vids, counters = [], {"ranking": 0, "funny": 0, "continuous": 0}
 
-    def moment(u, rank):
+    def moment(u, rank, a=None, b=None):
         toks = _tokens(u["cand"])
-        return {"rank": rank, "title": u["title"], "start": u["start"], "end": u["end"], "verified": True, "segment": u["id"], "humor": u["humor"],
-                "text_sha256": registry.text_fingerprint(toks), "sketch": registry.sketch(toks),
-                **({"complete_when_short": True} if u["end"] - u["start"] < 5 else {})}
+        a, b = (u["start"] if a is None else a), (u["end"] if b is None else b)
+        return {"rank": rank, "title": u["title"], "start": a, "end": b, "verified": True, "segment": u["id"], "humor": u["humor"],
+                "text_sha256": registry.text_fingerprint(toks), "sketch": registry.sketch(toks)}
     for rv in ranking_videos:
         counters["ranking"] += 1
         n = len(rv["items"])
-        ms = [moment(u, n - i) for i, u in enumerate(rv["items"])]       # worst first -> countdown to #1
+        ms = [moment(u, n - i) for i, u in enumerate(rv["items"])]       # weakest first -> countdown to the strongest at #1
         for u in rv["items"]:
             used_titles.add(u["title"].lower())
         vids.append({"format": "ranking", "id": f"R{counters['ranking']:02d}", "category": rv["category"], "name": slug(rv["category"]), "moments": ms})
-    for u in sorted(singles, key=lambda x: x["start"]):
+    for u in sorted(singles, key=lambda x: x["start"]):                  # STANDALONE PASS: every remaining strong moment, same level of care
         kind = u["format"]
         if not title_ok(u, kind):
             continue
         used_titles.add(u["title"].lower())
         counters[kind] += 1
         vids.append({"format": kind, "id": f"{PREFIX[kind]}{counters[kind]:02d}", "category": None, "name": slug(u["title"]), "moments": [moment(u, 1)]})
+    # intentional reuse: a ranking entry may ALSO get a standalone only when the review records a materially different edit (fuller scene + reason)
+    for rv, vid in zip(ranking_videos, [v for v in vids if v["format"] == "ranking"]):
+        for u in rv["items"]:
+            sr = u["review"].get("standalone_reuse")
+            if not sr:
+                continue
+            kind = sr.get("format") if sr.get("format") in ("funny", "continuous") else "funny"
+            a, b = sr.get("use_start", u["start"]), sr.get("use_end", u["end"])
+            why = (sr.get("reason") or "").strip()
+            try:
+                (titles.validate_headline)(sr.get("title") or "")
+            except titles.TitleError as exc:
+                rejected.append({"id": u["id"], "start": a, "end": b, "reason": f"standalone reuse skipped, headline invalid: {exc}"})
+                continue
+            sim = plan_mod.footage_similarity([{"start": u["start"], "end": u["end"]}], [{"start": a, "end": b}])
+            if not why or sim >= plan_mod.NEAR_IDENTICAL or (sr["title"].lower() in used_titles):
+                rejected.append({"id": u["id"], "start": a, "end": b, "reason": "standalone reuse skipped: needs a reason, a materially different span and a new headline"})
+                continue
+            used_titles.add(sr["title"].lower())
+            counters[kind] += 1
+            nu = {**u, "title": sr["title"], "start": a, "end": b}
+            vids.append({"format": kind, "id": f"{PREFIX[kind]}{counters[kind]:02d}", "category": None, "name": slug(sr["title"]), "moments": [moment(nu, 1)],
+                         "reuse": {"of": vid["id"], "reason": why, "segment": u["id"], "ranking_span": [u["start"], u["end"]]}})
     conflict = lambda m: registry.conflicts(sha, m["start"], m["end"], m.get("text_sha256"), m.get("sketch"), root=root, ignore_run=run_id)
-    res = plan_mod.validate([{"format": v["format"], "category": v["category"] or v["name"], "moments": v["moments"]} for v in vids], None, conflict)
+    res = plan_mod.validate([{"format": v["format"], "id": v["id"], "category": v["category"] or v["name"], "moments": v["moments"], **({"reuse": v["reuse"]} if v.get("reuse") else {})}
+                             for v in vids], None, conflict)
     if res.errors:
         raise ContentError("plan rejected: " + "; ".join(res.errors[:5]))
     for fmt, fname in (("ranking", "rankings.json"), ("funny", "funny-moments.json"), ("continuous", "continuous-moments.json")):
         _write_json(d / "plan" / fname, [v for v in vids if v["format"] == fmt])
     _write_json(d / "plan" / "rejected.json", rejected)
-    return {"videos": vids, "rejected": rejected, "warnings": res.warnings,
+    _write_json(d / "plan" / "edit-log.json", [{"segment": u["id"], "format": u["format"], "start": u["start"], "end": u["end"],
+                                                 **{k: u["review"].get(k) for k in fullanalysis.EDITORIAL}} for u in usable])
+    for v in vids:                                                       # runs/<run>/projects/{rankings,standalone}/<ID>-<name>.json: the edit decision list of each video
+        _write_json(d / "projects" / ("rankings" if v["format"] == "ranking" else "standalone") / f"{v['id']}-{v['name']}.json", v)
+    ledger = write_ledger(d, data["candidates"], vids, rejected, groups)
+    return {"videos": vids, "rejected": rejected, "warnings": res.warnings, "ledger": ledger["summary"],
             "candidates": {"ranking": sum(1 for u in usable if u["format"] == "ranking"), "funny": sum(1 for u in usable if u["format"] == "funny"),
                            "continuous": sum(1 for u in usable if u["format"] == "continuous")}}
+
+
+def write_ledger(d: Path, candidates: list[dict], vids: list[dict], rejected: list[dict], groups: dict) -> dict:
+    """candidates/ledger.json: EVERY candidate with where it went (or why not), plus the two mandatory creative passes and any intentional reuse."""
+    used: dict[str, list[str]] = {}
+    for v in vids:
+        for m in v["moments"]:
+            used.setdefault(m["segment"], []).append(v["id"])
+    why_not = {r["id"]: r["reason"] for r in rejected if r.get("id")}
+    rows = []
+    for c in candidates:
+        rv = c.get("review") or {}
+        rows.append({"id": c["id"], "start": c["start"], "end": c["end"], "duration_sec": c.get("duration"), "kind": c.get("kind"),
+                     "review_status": rv.get("status"), "suggested_format": rv.get("suggested_format"), "hook": rv.get("hook"), "payoff": rv.get("payoff"),
+                     "used_in": used.get(c["id"], []), "intentional_reuse": len(used.get(c["id"], [])) > 1,
+                     "not_used_because": None if used.get(c["id"]) else (why_not.get(c["id"]) or rv.get("rejection_reason") or "not selected")})
+    rk = [v for v in vids if v["format"] == "ranking"]
+    sa = [v for v in vids if v["format"] != "ranking"]
+    themes = {cat: len(items) for cat, items in groups.items()}
+    passes = {"ranking_pass": {"videos": [v["id"] for v in rk], "themes_considered": themes,
+                               "none_because": None if rk else ("no theme had at least %d honest entries: %s" % (style.load()["limits"]["min_ranks"], themes or "no ranking candidates"))},
+              "standalone_pass": {"videos": [v["id"] for v in sa],
+                                  "none_because": None if sa else "no remaining moment worked as a complete standalone (see not_used_because per candidate)"}}
+    out = {"candidates": rows, "passes": passes,
+           "summary": {"candidates": len(rows), "used": sum(1 for r in rows if r["used_in"]), "reused_in_two_videos": sum(1 for r in rows if r["intentional_reuse"]),
+                       "ranking_videos": len(rk), "standalone_videos": len(sa)}}
+    _write_json(d / "candidates" / "ledger.json", out)
+    return out
+
+
+LEDGER_STATUS = ("used_directly", "in_ranking", "in_standalone", "merged_into_scene", "rejected_after_recovery")
+
+
+def reconcile_ledger(candidate_ids: list[str], rows: list[dict], out_dir: Path) -> dict:
+    """candidates/recovery-ledger.json + .csv: EVERY segment exactly once with status, exact reason, audio verification method, neighbours inspected
+    and final output filename. Refuses a ledger that omits, duplicates or leaves a segment unexplained; counts come from the rows themselves."""
+    seen: dict[str, dict] = {}
+    problems = []
+    for r in rows:
+        sid = r.get("segment")
+        if sid in seen:
+            problems.append(f"{sid} appears more than once")
+        seen[sid] = r
+        if r.get("status") not in LEDGER_STATUS:
+            problems.append(f"{sid}: status must be one of {LEDGER_STATUS}")
+        if not (r.get("reason") or "").strip():
+            problems.append(f"{sid}: exact reason missing")
+        if not (r.get("audio_verification") or "").strip() or not r.get("neighbors_inspected"):
+            problems.append(f"{sid}: audio verification method and neighbouring segments inspected are required")
+        if r.get("status") == "merged_into_scene" and not r.get("merged_into"):
+            problems.append(f"{sid}: merged_into is required")
+        if r.get("status") in ("used_directly", "in_ranking", "in_standalone") and not r.get("output"):
+            problems.append(f"{sid}: a used segment needs its output filename")
+    missing = [c for c in candidate_ids if c not in seen]
+    extra = [c for c in seen if c not in candidate_ids]
+    if missing:
+        problems.append(f"missing segments: {missing}")
+    if extra:
+        problems.append(f"unknown segments: {extra}")
+    if problems:
+        raise ContentError("ledger rejected: " + "; ".join(problems[:8]))
+    ordered = [seen[c] for c in candidate_ids]
+    counts = {k: sum(1 for r in ordered if r["status"] == k) for k in LEDGER_STATUS}
+    out = {"segments": len(ordered), "counts": counts, "rows": ordered}
+    _write_json(out_dir / "recovery-ledger.json", out)
+    import csv
+    with (out_dir / "recovery-ledger.csv").open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["segment", "status", "reason", "audio_verification", "neighbors_inspected", "merged_into", "scene", "output"])
+        for r in ordered:
+            w.writerow([r["segment"], r["status"], r["reason"], r["audio_verification"], " ".join(r["neighbors_inspected"]), r.get("merged_into", ""), r.get("scene", ""), r.get("output", "")])
+    return out
 
 
 def load_plan(d: Path) -> list[dict]:
@@ -308,8 +414,48 @@ def _offsets(moments: list[dict]) -> list[float]:
     return out
 
 
+def _edit_field(d: Path, moments: list[dict], key: str) -> str:
+    """hook/payoff text recorded in the review for the moments' segments (joined, first non-empty)."""
+    p = d / "plan" / "edit-log.json"
+    log = {e["segment"]: e for e in json.loads(p.read_text())} if p.is_file() else {}
+    return " | ".join(filter(None, (str((log.get(m["segment"]) or {}).get(key) or "") for m in moments)))[:400]
+
+
+def _edit_decisions(d: Path, moments: list[dict]) -> list[dict]:
+    p = d / "plan" / "edit-log.json"
+    log = {e["segment"]: e for e in json.loads(p.read_text())} if p.is_file() else {}
+    return [{"segment": m["segment"], **{k: (log.get(m["segment"]) or {}).get(k) for k in ("treatment", "trim_reason", "duration_reason", "added_value", "edit_decisions", "runner_up")}}
+            for m in moments]
+
+
+def exports_path(root) -> Path:
+    return _root(root) / "registry" / "exports.json"
+
+
+def exports_load(root) -> list[dict]:
+    p = exports_path(root)
+    return json.loads(p.read_text()) if p.is_file() else []
+
+
+def exports_find(root, digest: str, video_id: str, run_id: str) -> str | None:
+    """A previously exported final with the same bytes under another name/run is an accidental duplicate export."""
+    for e in exports_load(root):
+        if e["sha256"] == digest and not (e["run_id"] == run_id and e["video_id"] == video_id) and (_root(root) / e["path"]).exists():
+            return e["path"]
+    return None
+
+
+def exports_register(root, digest: str, video_id: str, run_id: str, path: str, timecodes) -> None:
+    rows = [e for e in exports_load(root) if not (e["run_id"] == run_id and e["video_id"] == video_id)]
+    rows.append({"sha256": digest, "run_id": run_id, "video_id": video_id, "path": path, "source_timecodes": timecodes})
+    _write_json(exports_path(root), rows)
+
+
+exports_mod_find = exports_find
+
+
 def finalize_output(run_id: str, entry: dict, root=None, words_fn=None) -> dict:
-    """Full QA on one render, then file it under ready-for-drafts/<source>/<run>/<format>/<ID-slug>/ or needs-review/<source>/<run>/<ID-slug>/."""
+    """Full QA on one render, then file it under approved_clips/{rankings,standalone/funny,standalone/continuous}/<run>/<ID-slug>/ or needs-review/<run>/<ID-slug>/ (with FAILURE.txt)."""
     root = _root(root)
     d = run_dir_for(run_id, root)
     src = _source(d)
@@ -344,10 +490,16 @@ def finalize_output(run_id: str, entry: dict, root=None, words_fn=None) -> dict:
     extra.append(qa.check("crop_and_framing", qa.PASS if fr["ok"] and side.get("framing_ok", True) else qa.FAIL, fr["reason"] or f"source {fr['width']}x{fr['height']} mapped by ratios"))
     dup = [x for m in moments for x in registry.conflicts(sha, m["start"], m["end"], m.get("text_sha256"), m.get("sketch"), root=root, ignore_run=run_id)]
     mine = [(m["start"], m["end"]) for m in moments]
-    for other in load_plan(d):                                  # no overlap with the run's OTHER videos either
-        if other["id"] != entry["id"]:
-            dup += [f"overlaps {other['id']}" for o in other["moments"] for a, b in mine if min(b, o["end"]) - max(a, o["start"]) > registry.MIN_OVERLAP_SEC]
+    partner = {(vid.get("reuse") or {}).get("of")} | {o["id"] for o in load_plan(d) if (o.get("reuse") or {}).get("of") == entry["id"]}
+    for other in load_plan(d):                                  # no overlap with the run's OTHER videos either (except a recorded ranking<->standalone reuse)
+        if other["id"] != entry["id"] and other["id"] not in partner:
+            dup += [f"overlaps {other['id']}" for o in other["moments"] for a, b in mine if min(b, o["end"]) - max(a, o["start"]) > plan_mod.SHARED_BOUNDARY_SEC]
+        elif other["id"] in partner and plan_mod.footage_similarity(vid["moments"], other["moments"]) >= plan_mod.NEAR_IDENTICAL:
+            dup.append(f"near-identical timeline to {other['id']}")
     extra.append(qa.check("no_duplicate_moment", qa.FAIL if dup else qa.PASS, dup[0] if dup else "registry and reservations clear"))
+    digest0 = cleanup.sha256(mp4)
+    same = exports_mod_find(root, digest0, vid["id"], run_id)
+    extra.append(qa.check("no_duplicate_export", qa.FAIL if same else qa.PASS, f"byte-identical to {same}" if same else "no identical earlier export"))
     gen = textsafety.scan_fields(textsafety.generated_text(None, spec))
     extra.append(qa.check("text_safety_generated", qa.FAIL if gen else qa.PASS, "; ".join(f"{x['field']}: {x['category']}" for x in gen[:3]) or "no severe language (profanity untouched)"))
     colors_used = side.get("label_colors")
@@ -366,7 +518,7 @@ def finalize_output(run_id: str, entry: dict, root=None, words_fn=None) -> dict:
     ok, why = qa.auto_decision(report)
     reasons += why
     status_name = "ready_for_draft_transfer" if ok else "needs_review"
-    rel = (Path("ready-for-drafts") / sid / run_id / FORMAT_DIR[fmt] / stem) if ok else (Path("needs-review") / sid / run_id / stem)
+    rel = (Path(APPROVED_ROOT) / APPROVED_DIR[fmt] / run_id / stem) if ok else (Path("needs-review") / run_id / stem)
     dest = root / rel
     dest.mkdir(parents=True, exist_ok=True)
     final = dest / f"{stem}.mp4"
@@ -398,7 +550,15 @@ def finalize_output(run_id: str, entry: dict, root=None, words_fn=None) -> dict:
                 "text_safety": {"chat": chat}, "public_publish": False,
                 "transfer": {"status": status_name if ok else "not_ready", "mode": "UPLOAD_TO_DRAFT" if ok else None, "authorized": False,
                              "note": "no upload happens automatically; TikTok drafts need the user's separate authorization"}}
+    reuse = vid.get("reuse")
+    manifest.update({"output_filename": final.name, "source_timecodes": [[m["start"], m["end"]] for m in moments], "theme": vid["category"] if fmt == "ranking" else None,
+                     "hook_used": _edit_field(d, moments, "hook") or None, "payoff": _edit_field(d, moments, "payoff") or None,
+                     "editing_decisions": _edit_decisions(d, moments), "final_runtime_sec": dur, "candidate_ids": [m["segment"] for m in moments],
+                     "intentional_reuse": reuse or next(({"reused_by": o["id"], "reason": (o["reuse"] or {}).get("reason")} for o in load_plan(d) if (o.get("reuse") or {}).get("of") == entry["id"]), None),
+                     "qa_result": report["verdict"]})
     _write_json(dest / "manifest.json", manifest)
+    if not ok:
+        (dest / "FAILURE.txt").write_text("Needs review - this output failed automated QA or could not be verified.\n\n" + "\n".join(f"- {r}" for r in reasons or ["unspecified"]) + "\n")
     if ok:
         clips = [{"source_sha256": sha, "source_id": sid, "run_id": run_id, "video": final.name, "video_title": headline, "format": fmt,
                   "rank": m["rank"], "title": m["title"], "start": m["start"], "end": m["end"], "transcript_text_sha256": m.get("text_sha256"),
@@ -407,6 +567,7 @@ def finalize_output(run_id: str, entry: dict, root=None, words_fn=None) -> dict:
         registry.register({"sha256": sha, "id": sid, "duration_sec": src["duration_sec"], "size_bytes": (root / source_library.LIB / sid / "master.mp4").stat().st_size,
                            "original_names": [src["source_name"]]}, clips, root)
     os.unlink(mp4) if mp4.exists() else None
+    exports_register(root, digest, entry["id"], run_id, str(rel / final.name), manifest["source_timecodes"])
     rec.update(status=status_name if ok else "needs_review", dir=str(rel), final=str(rel / final.name), duration_sec=dur, headline=headline, caption=caption,
                accent_color=manifest["accent_color"], qa_verdict=report["verdict"], needs_review_reasons=reasons, error=None,
                clip_ids=[x["clip_id"] for x in manifest["moments"]], source_ranges=[[m["start"], m["end"]] for m in moments], rank_count=manifest["rank_count"])
@@ -430,12 +591,12 @@ def finalize_all(run_id: str, root=None, progress=print, words_fn=None) -> list[
 
 # ------------------------------------------------------------------ dashboard
 def build_dashboard(run_id: str, root=None) -> Path:
-    """Self-contained local dashboard (no server, no external assets): ready-for-drafts/<source>/<run>/index.html + summary.json."""
+    """Self-contained local dashboard (no server, no external assets): approved_clips/_reports/<source>/<run>/index.html + summary.json."""
     root = _root(root)
     d = run_dir_for(run_id, root)
     src = _source(d)
     sid = src["source_id"]
-    out_dir = root / "ready-for-drafts" / sid / run_id
+    out_dir = root / APPROVED_ROOT / "_reports" / sid / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
     recs = json.loads((d / "outputs.json").read_text()) if (d / "outputs.json").is_file() else []
     status = json.loads((d / "status.json").read_text())
@@ -553,11 +714,20 @@ def report(run_id: str, root=None, command: str = "") -> str:
          f"Segments detected: {st['segments_detected']} · analyzed {st['segments_analyzed']}",
          f"Candidates: ranking {st['ranking_candidates']}, funny {st['funny_candidates']}, continuous {st['continuous_candidates']}, rejected {st['rejected_candidates']}",
          "Main rejection reasons: " + ("; ".join(f"{k} x{n}" for k, n in sorted(reasons.items(), key=lambda kv: -kv[1])[:5]) or "none"),
-         f"Videos: {len(ready)} ready for drafts (rankings {sum(r['format'] == 'ranking' for r in ready)}, funny {sum(r['format'] == 'funny' for r in ready)}, "
-         f"continuous {sum(r['format'] == 'continuous' for r in ready)}), {len(recs) - len(ready)} needing review"]
+         f"Videos: {len(ready)} approved (rankings {sum(r['format'] == 'ranking' for r in ready)}, funny {sum(r['format'] == 'funny' for r in ready)}, "
+         f"continuous {sum(r['format'] == 'continuous' for r in ready)}; runtime is recorded, never a pass/fail factor), {len(recs) - len(ready)} needing review"]
     L += [f"  {r['id']} [{r['format']}] {r.get('headline')} - {r.get('duration_sec')}s - accent {r.get('accent_color')} - QA {r.get('qa_verdict')} - {r.get('final')}" for r in ready]
     L += [f"  NEEDS REVIEW {r['stem']}: {'; '.join(r.get('needs_review_reasons') or [str(r.get('error'))])[:160]}" for r in recs if r["status"] != "ready_for_draft_transfer"]
-    L += [f"Ready-for-drafts: ready-for-drafts/{src['source_id']}/{run_id}/", f"Dashboard: ready-for-drafts/{src['source_id']}/{run_id}/index.html",
+    L += [f"Approved (ready for your review / TikTok drafts): approved_clips/rankings/{run_id}/ and approved_clips/standalone/{{funny,continuous}}/{run_id}/", f"Dashboard: approved_clips/_reports/{src['source_id']}/{run_id}/index.html",
           f"Cleanup: {st['cleanup']}", f"Source protection: {src['master']} preserved (never purged)"]
+    lg = d / "candidates" / "ledger.json"
+    if lg.is_file():
+        led = json.loads(lg.read_text())
+        L.insert(3, f"Candidate ledger: {led['summary']['candidates']} candidates, {led['summary']['used']} used, {led['summary']['reused_in_two_videos']} intentionally reused (runs/{run_id}/candidates/ledger.json)")
+        for nm, ps in led["passes"].items():
+            L.insert(4, f"{nm.replace('_', ' ').title()}: {len(ps['videos'])} video(s)" + (f" - none because: {ps['none_because']}" if ps["none_because"] else ""))
     L += [f"Warning: {w}" for w in st["warnings"]] + [f"Error: {e}" for e in st["errors"]]
-    return "\n".join(L)
+    text = "\n".join(L)
+    (root / "logs").mkdir(exist_ok=True)
+    (root / "logs" / f"{run_id}-report.txt").write_text(text + "\n")
+    return text

@@ -148,32 +148,53 @@ def test_single_visible_rank_number_on_label_pill(tmp_path):
     assert badge["blocks"][0]["text"] == "#1"
 
 
-def test_four_and_five_rank_videos_pass():
-    assert P.validate([video("Best Roasts", 4, 0, 12.5)]).ok
-    assert P.validate([video("Best Roasts", 5, 0, 10.5)]).ok
+NAMES10 = ["Chat Roasts Streamer", "Mic Falls Over", "Surprise Jump Scare", "Wrong Button Panic", "Loud Slip Up", "Cat Steals Seat", "Rage Quit Fail",
+           "Door Hits Face", "Wrong Name Said", "Phone Rings Live"]
 
 
-def test_three_or_six_ranks_rejected():
-    assert not P.validate([video("A", 3, 0, 15)]).ok
-    six = [{"rank": 6 - i, "title": f"Moment Number {n}", "start": i * 20, "end": i * 20 + 9, "verified": True}
-           for i, n in enumerate("abcdef")]
-    assert not P.validate([{"category": "A", "moments": six}]).ok
+def test_honest_rank_counts_pass_without_a_four_five_quota():
+    for n in (3, 4, 5, 7, 10):
+        assert P.validate([video("Best Roasts", n, 0, 12.0, names=NAMES10)]).ok, n
 
 
-def test_duration_rules_are_content_driven():
-    five_long = P.validate([video("A", 5, 0, 17.0)])                      # 85 s: no 60 s ceiling
-    assert five_long.ok and not five_long.warnings
-    assert P.validate([video("A", 4, 0, 12.5)]).ok and not P.validate([video("A", 4, 0, 12.5)]).warnings
-    over = P.validate([video("A", 4, 0, 40.0)])                           # a moment well above ~30 s is flagged, not rejected
-    assert over.ok and any("above the ~30s guide" in w for w in over.warnings)
-    short = P.validate([video("A", 4, 0, 4.0)])                           # <5 s needs to be completely understandable
-    assert short.ok and any("under 5s" in w for w in short.warnings)
-    v = video("A", 4, 0, 4.0)
-    for m in v["moments"]:
-        m["complete_when_short"] = True
-    assert not P.validate([v]).warnings
-    huge = video("A", 4, 0, 160.0)                                        # only TikTok's own 600 s upload limit is an error
+def test_too_few_ranks_rejected_and_header_layout_limit_enforced():
+    assert any("at least 3" in e for e in P.validate([video("A", 2, 0, 15, names=NAMES10)]).errors)       # two entries are a standalone, never a padded ranking
+    eleven = [{"rank": 11 - i, "title": f"Moment Number {n}", "start": i * 20, "end": i * 20 + 9, "verified": True} for i, n in enumerate("abcdefghijk")]
+    assert any("header fits" in e for e in P.validate([{"category": "A", "moments": eleven}]).errors)
+
+
+def test_duration_is_metadata_never_a_rule():
+    for dur in (1.0, 4.0, 17.0, 40.0, 59.0, 61.0, 90.0, 110.0):                                         # none of these ever warns or errors
+        r = P.validate([video("A", 4, 0, dur)])
+        assert r.ok and not r.warnings, dur
+    long_standalone = P.validate([{"format": "standalone", "moments": [{"rank": 1, "title": "Whole Argument Plays Out", "start": 0, "end": 300, "verified": True}]}])
+    assert long_standalone.ok and not long_standalone.warnings
+    huge = video("A", 4, 0, 160.0)                                                                       # only the platform's technical upload limit is an error
     assert any("upload limit" in e for e in P.validate([huge]).errors)
+
+
+def test_over_the_platform_limit_splits_only_at_natural_boundaries():
+    ms = [{"start": i * 100.0, "end": i * 100.0 + 200.0} for i in range(0, 8, 2)]                         # four 200 s story units, limit 450 s
+    groups = P.split_at_boundaries(ms, 450.0)
+    assert [len(g) for g in groups] == [2, 2] and all(m in ms for g in groups for m in g)                # whole units only, never mid-moment
+    one = [{"start": 0.0, "end": 900.0}]
+    assert P.split_at_boundaries(one, 450.0) == [one]                                                    # no natural boundary: stays whole (reported, never cut blindly)
+    cut = P.split_at_boundaries(one, 450.0, boundaries=[420.0, 880.0])
+    assert [(g[0]["start"], g[0]["end"]) for g in cut] == [(0.0, 420.0), (420.0, 900.0)] or sum(len(g) for g in cut) >= 2
+
+
+def test_near_identical_timelines_and_unrecorded_reuse_are_refused():
+    rk = {**video("A", 4, 0, 12.0, names=NAMES10), "id": "R01"}
+    same = {"format": "standalone", "id": "F01", "moments": [{"rank": 1, "title": "Renamed Copy Here", "start": 0, "end": 12.0, "verified": True}]}
+    assert any("already used" in e for e in P.validate([rk, same]).errors)                                # overlap without a recorded reuse
+    f = {**same, "reuse": {"of": "R01", "reason": ""}}
+    assert any("needs a recorded reason" in e for e in P.validate([rk, f]).errors)
+    ok = {"format": "standalone", "id": "F01", "reuse": {"of": "R01", "reason": "full scene with context, ranking shows only the beat"},
+          "moments": [{"rank": 1, "title": "Whole Scene Plays Out", "start": -20.0, "end": 12.0, "verified": True}]}
+    assert not any("already used" in e or "reuse" in e for e in P.validate([rk, ok]).errors)              # recorded reuse is allowed (materially different span)
+    solo = {"format": "ranking", "id": "R02", "category": "B", "moments": rk["moments"]}
+    assert any("near-identical" in e for e in P.validate([rk, {**solo, "moments": [{**m, "title": m["title"] + " Two"} for m in rk["moments"]]}]).errors)
+    assert P.footage_similarity([{"start": 0, "end": 10}], [{"start": 0, "end": 10}]) == 1.0 and P.footage_similarity([{"start": 0, "end": 10}], [{"start": 20, "end": 30}]) == 0.0
 
 
 def test_duplicate_moments_titles_and_categories_prevented():

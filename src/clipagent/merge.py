@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import config, source_library
+from . import config, models, source_library
 from .transcribe import clock, srt_time
 
 HDR = re.compile(r"(\d\d):(\d\d):(\d\d) \[(.+)\]$")
@@ -343,7 +343,7 @@ def merge(video_id: str, core1_path: Path, model_factory=None, progress=print) -
     n_in = len(rows)
     if model_factory is None:
         from faster_whisper import WhisperModel
-        model_factory = lambda: WhisperModel("small.en", device="cpu", compute_type="int8")
+        model_factory = lambda: models.whisper("small.en")
     model = model_factory()
 
     progress("first alignment")

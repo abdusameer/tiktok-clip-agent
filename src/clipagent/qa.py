@@ -32,6 +32,28 @@ def parse_max_volume(stderr: str) -> float | None:
     return float(m.group(1)) if m else None
 
 
+def parse_clipped_ratio(stderr: str) -> float | None:
+    """Share of samples sitting at digital full scale (volumedetect histogram_0db / n_samples); None when not reported."""
+    n = re.findall(r"n_samples:\s*(\d+)", stderr)           # volumedetect prints an empty first report; the real one is last
+    h = re.findall(r"histogram_0db:\s*(\d+)", stderr)
+    return (int(h[-1]) / int(n[-1])) if n and h and int(n[-1]) else None
+
+
+CLIP_RATIO = 0.0002      # more than 0.02 % of samples at full scale = audible clipping; a loud peak that merely touches 0 dB is not
+
+
+def classify_freezes(frozen: list, dur: float, tail_limit: float = 1.0) -> tuple[list, list]:
+    """(failing, allowed). Freeze frames and holds are a permitted creative effect (a scoreboard payoff, a deliberate freeze); only a dead frame
+    at the very start or a held tail longer than `tail_limit` seconds at the very end is a defect."""
+    bad, ok = [], []
+    for a, d in frozen:
+        if a <= 0.5 or (a + d >= dur - 0.3 and d > tail_limit):
+            bad.append((a, d))
+        else:
+            ok.append((a, d))
+    return bad, ok
+
+
 def _ff(args: list[str]) -> str:
     return subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-v", "info", *args], capture_output=True, text=True).stderr
 
@@ -80,10 +102,15 @@ def signal_checks(path: Path) -> list[dict]:
                             "black_start", "black_duration")
     frozen = parse_intervals(_ff(["-i", str(path), "-vf", "freezedetect=n=-60dB:d=1", "-an", "-f", "null", "-"]),
                              "lavfi.freezedetect.freeze_start", "lavfi.freezedetect.freeze_duration")
-    vol = parse_max_volume(_ff(["-i", str(path), "-vn", "-af", "volumedetect", "-f", "null", "-"]))
+    vtxt = _ff(["-i", str(path), "-vn", "-af", "volumedetect", "-f", "null", "-"])
+    vol, ratio = parse_max_volume(vtxt), parse_clipped_ratio(vtxt)
+    dur = float(probe(path)["format"]["duration"])
+    bad_freeze, held = classify_freezes(frozen, dur)
+    clipped = vol is not None and vol >= -0.1 and (ratio is None or ratio > CLIP_RATIO)
     return [check("no_black_frames", FAIL if black else PASS, f"{black}" if black else ""),
-            check("no_frozen_frames", FAIL if frozen else PASS, f"{frozen}" if frozen else ""),
-            check("no_clipped_audio", MANUAL if vol is None else (FAIL if vol >= -0.1 else PASS), f"max_volume {vol} dB")]
+            check("no_frozen_frames", FAIL if bad_freeze else PASS, f"{bad_freeze}" if bad_freeze else (f"holds allowed: {held}" if held else "")),
+            check("no_clipped_audio", MANUAL if vol is None else (FAIL if clipped else PASS),
+                  f"max_volume {vol} dB" + (f", {ratio:.5%} of samples at full scale" if ratio is not None else ""))]
 
 
 def layout_checks(fmt: str = "ranking") -> list[dict]:

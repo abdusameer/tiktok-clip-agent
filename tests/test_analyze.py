@@ -24,8 +24,9 @@ def test_flagged_segments_lower_score_and_are_reported():
     base = [seg(0, 0, 4, "Wait, what is that?"), seg(1, 4.2, 8, "Oh my god, no way.")]
     flagged = [seg(0, 0, 4, "Wait, what is that?", ["TIMING_ESTIMATED"]), seg(1, 4.2, 8, "Oh my god, no way.")]
     db = np.zeros(40)
-    a = an.candidates_from_segments(base, db)[0]
-    b = an.candidates_from_segments(flagged, db)[0]
+    both = lambda cs: next(c for c in cs if c["dur"] >= 7)          # the window spanning both segments (shorter windows are candidates too: no length rule)
+    a = both(an.candidates_from_segments(base, db))
+    b = both(an.candidates_from_segments(flagged, db))
     assert b["score"] < a["score"] and b["flagged_segment_ids"] == [0] and b["timing_estimated_fraction"] == 0.5
 
 

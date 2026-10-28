@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import qa
+from . import models, qa
 
 MARGIN = 0.05            # a cut within this distance of a word edge is clean
 SYNC_TOL = 0.12          # seconds
@@ -24,13 +24,19 @@ def _words_near(media: Path, t: float, half: float = 1.3) -> list[tuple[float, f
     audio = np.frombuffer(raw, dtype=np.float32)
     if len(audio) < 8000 or float(np.abs(audio).max()) < 0.003:        # silence: nothing can be cut in half
         return []
-    model = _MODEL.setdefault("m", WhisperModel("small.en", device="cpu", compute_type="int8"))
+    model = models.whisper("small.en")        # cached (the old setdefault(...) re-loaded the model on EVERY call)
     segs, _ = model.transcribe(audio, beam_size=1, word_timestamps=True, language="en", condition_on_previous_text=False)
     return [(round(w.start + a, 2), round(w.end + a, 2), w.word.strip()) for s in segs for w in s.words]
 
 
+MAX_OUTWARD_SEC = 0.7    # a cut may move at most this far to keep a straddling word whole
+MAX_WORD_SEC = 1.2       # a decoded "word" longer than this is a timing artifact (stretched over music/silence): nothing can be cut in half
+
+
 def inside_word(t: float, words: list[tuple[float, float, str]], margin: float = MARGIN) -> tuple[float, float, str] | None:
     for a, b, w in words:
+        if b - a > MAX_WORD_SEC:
+            continue
         if a + margin < t < b - margin:
             return (a, b, w)
     return None
@@ -95,3 +101,28 @@ def edit_point_checks(out_path: Path, offsets: list[float]) -> list[dict]:
         mean = float(np.frombuffer(raw, dtype=np.uint8).mean()) if raw else 0.0
         res.append(qa.check(f"edit_point_frames[{i}]", qa.PASS if mean > 12 else qa.FAIL, f"mean luminance {mean:.0f} right after edit {i}"))
     return res
+
+
+def snap_boundary(media: Path, t: float, kind: str, words_fn=None, tries: int = 6, outward: bool = True) -> float:
+    """Move a cut point out of a word. Outward keeps the whole word (start goes before it, end goes after it); inward drops it (start goes after the
+    word, end goes before it) - used when outward would run into a neighbouring scene. Re-checks with the decoder QA uses, up to `tries` times."""
+    words_fn = words_fn or _words_near
+    for _ in range(tries):
+        hit = inside_word(t, words_fn(media, t))
+        if not hit:
+            break
+        before = (kind == "start") == outward
+        t = round(hit[0] - 0.08 if before else hit[1] + 0.08, 2)
+    return max(t, 0.0)
+
+
+def snap_boundaries(media: Path, start: float, end: float, words_fn=None, ok=None) -> tuple[float, float]:
+    """Clean cut points for a moment. `ok(start, end)` rejects a choice that would run into a neighbouring or used scene; then the other direction
+    (drop the straddling word instead of keeping it) and finally the event's own edge are tried."""
+    ok = ok or (lambda a, b: True)
+    near = lambda t, x: abs(x - t) <= MAX_OUTWARD_SEC               # outward through continuous speech would pull in the next scene: then drop the word
+    starts = [snap_boundary(media, start, "start", words_fn), snap_boundary(media, start, "start", words_fn, outward=False), start]
+    a = next((x for x in starts if ok(x, end) and (near(start, x) or x == starts[1])), start)
+    ends = [snap_boundary(media, end, "end", words_fn), snap_boundary(media, end, "end", words_fn, outward=False), end]
+    b = next((x for x in ends if ok(a, x) and (near(end, x) or x == ends[1])), end)
+    return a, b

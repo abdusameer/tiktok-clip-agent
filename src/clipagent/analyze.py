@@ -10,10 +10,11 @@ from pathlib import Path
 
 import numpy as np
 
-from . import config, source_library
+from . import config, models, source_library
 from .merge import norm, recheck
 
-MIN_LEN, MAX_LEN = 6.0, 22.0
+# Search-window bounds for the candidate generator only (a search-space limit, NOT an editorial length rule: duration never decides quality).
+MIN_LEN, MAX_LEN = 3.0, 180.0
 TERMINAL = (".", "?", "!", "...")
 
 HOOK = re.compile(r"\b(wait|bro|what|no way|oh my god|listen|guess|how|why|hold on|are you|did you|i('m| am) (the|not|very))\b|[?!]", re.I)
@@ -166,12 +167,12 @@ def analyze(video_id: str, model_factory=None, limit: int = 60, progress=print) 
     progress(f"{len(pool)} windows -> {len(picked)} ranked; verifying against the video")
     if model_factory is None:
         from faster_whisper import WhisperModel
-        model_factory = lambda: WhisperModel("small.en", device="cpu", compute_type="int8")
+        model_factory = lambda: models.whisper("small.en")
     model = model_factory()
     for n, c in enumerate(picked, 1):
         v = verify_candidate(model, media, c)
         c["verification"] = v
-        c["verified"] = bool(v["audio_agreement"] >= 0.6 and v["frames_ok"] and "start" in v and 4 <= v["dur"] <= 30)
+        c["verified"] = bool(v["audio_agreement"] >= 0.6 and v["frames_ok"] and "start" in v and v["dur"] > 0)
         c["confidence"] = confidence(c, v)
         c["id"] = f"m{n:02d}"
         if n % 10 == 0:
@@ -213,7 +214,7 @@ def build_rankings(video_id: str, curation_path: Path, model_factory=None, progr
     cur = json.loads(Path(curation_path).read_text())
     if model_factory is None:
         from faster_whisper import WhisperModel
-        model_factory = lambda: WhisperModel("small.en", device="cpu", compute_type="int8")
+        model_factory = lambda: models.whisper("small.en")
     model = model_factory()
     db = loudness_curve(media)
     tiktoks = []

@@ -386,6 +386,29 @@ def scan_chat_cmd(source_id: str = typer.Argument(...), start: float = typer.Opt
         raise typer.Exit(code=1)
 
 
+@app.command("content-intake")
+def content_intake_cmd(rights: str = typer.Option(None, "--rights", help="Optional; defaults to the user-supplied-file note")) -> None:
+    """Scan sourcevideo/ (and loose media in source_library/), pair each video with its audio, ingest every one and create a run. Prints one JSON line per source."""
+    from . import intake
+    found = intake.scan()
+    if not found:
+        typer.echo("Nothing to process: put the video (and its audio, if separate) in sourcevideo/", err=True)
+        raise typer.Exit(code=1)
+    code = 0
+    for f in found:
+        try:
+            res = lib_mod.ingest_source(f["video"], f["audio"], rights=rights or f"user-supplied local file {f['video'].name} placed in {f['where']}/ by the user for /make-content; no separate rights detail")
+            d = cf_mod.start(res["source_id"])
+            typer.echo(json.dumps({"run_id": d.name, "source_id": res["source_id"], "video": f["video"].name, "audio": f["audio"].name if f["audio"] else None}))
+        except lib_mod.IdentityUncertain as exc:
+            typer.echo(f"STOP - identity needs a decision for {f['video'].name}: {exc}", err=True)
+            code = 2
+        except (cf_mod.ContentError, lib_mod.SourceError, FileNotFoundError) as exc:
+            typer.echo(f"Error for {f['video'].name}: {exc}", err=True)
+            code = code or 1
+    raise typer.Exit(code=code)
+
+
 @app.command("content-start")
 def content_start_cmd(source_id: str = typer.Option(None, "--source-id"), video: Path = typer.Option(None, "--video"), audio: Path = typer.Option(None, "--audio"),
                       rights: str = typer.Option(None, "--rights", help="Optional; defaults to the user-supplied-file note")) -> None:
@@ -421,7 +444,11 @@ def content_segment_cmd(run_id: str = typer.Argument(...)) -> None:
         caps = sorted((cf_mod._lib(sid, None) / "incoming").glob("*.vtt")) if (cf_mod._lib(sid, None) / "incoming").is_dir() else []
         fa_mod.analyze_source(sid, captions=caps, progress=lambda *_: None)
         r = seg_mod.build(sid, progress=lambda *_: None)
+        from . import audioevents
+        lib = cf_mod._lib(sid, None)
+        ev = audioevents.analyze(lib / "master.mp4", lib / "analysis" / "audio_events.json")        # heard payoffs (yells, impacts, pauses) for the review
         cands = fa_mod.load_candidates(sid)["candidates"]
+        (lib / "analysis" / "review_evidence.json").write_text(json.dumps(audioevents.evidence_rows(lib, cands, ev["events"]), indent=1))
         sug = {k: sum(1 for c in cands if c["suggested_format"] == k) for k in ("ranking", "funny", "continuous", "rejected")}
         st.stage("CLASSIFYING", segments_detected=r["segments"], segments_analyzed=r["segments"], ranking_candidates=sug["ranking"], funny_candidates=sug["funny"],
                  continuous_candidates=sug["continuous"], rejected_candidates=sug["rejected"] + r["rejected_sections"])
@@ -435,13 +462,14 @@ def content_segment_cmd(run_id: str = typer.Argument(...)) -> None:
 
 
 @app.command("content-plan")
-def content_plan_cmd(run_id: str = typer.Argument(...)) -> None:
+def content_plan_cmd(run_id: str = typer.Argument(...), snap: bool = typer.Option(True, "--snap/--no-snap", help="Snap cut points out of spoken words (re-decodes each edge)")) -> None:
     """Allocate every reviewed segment to ONE format and write plan/*.json (never reuses or overlaps a moment)."""
     d = cf_mod.run_dir_for(run_id)
     st = RunStatus(d)
     try:
         st.stage("PLANNING")
-        pl = cf_mod.build_plan(run_id)
+        from . import cutqa
+        pl = cf_mod.build_plan(run_id, snap_fn=cutqa.snap_boundaries if snap else None)
     except cf_mod.ContentError as exc:
         st.fail(str(exc))
         typer.echo(f"Error: {exc}", err=True)

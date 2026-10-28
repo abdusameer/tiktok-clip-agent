@@ -119,7 +119,8 @@ def review(proj, spec):
         if fmt == "rejected":
             r["rejection_reason"] = "test: not used"
         else:
-            r.update(visible_action="something happens", hook="hook", setup="setup", payoff="payoff", title=title, category=cat)
+            r.update(visible_action="something happens", hook="hook", setup="setup", payoff="payoff", title=title, category=cat,
+                     treatment="standalone_punchline", duration_reason="complete joke", added_value="headline framing")
         out.append(r)
     FA.apply_reviews(SID, out, proj)
 
@@ -160,12 +161,12 @@ def test_every_segment_goes_to_one_format_and_rankings_are_numbered(proj):
 def test_unusable_or_short_ranking_groups_never_become_rankings(proj):
     analyzed(proj)
     segs = [c for c in FA.load_candidates(SID, proj)["candidates"] if c["duration"] >= 5]
-    spec = {c["id"]: ("ranking", n, "Tiny Group") for c, n in zip(segs[:3], ["One Two Three", "Four Five Six", "Seven Eight Nine"])}
+    spec = {c["id"]: ("ranking", n, "Tiny Group") for c, n in zip(segs[:2], ["One Two Three", "Four Five Six"])}
     review(proj, spec)
     rid = CF.start(SID, proj).name
     pl = CF.build_plan(rid, proj)
-    assert not [v for v in pl["videos"] if v["format"] == "ranking"]                                  # 3 moments cannot make a ranking
-    assert all(v["format"] == "funny" for v in pl["videos"])                                          # they become short funny moments instead
+    assert not [v for v in pl["videos"] if v["format"] == "ranking"]                                  # 2 moments cannot make a ranking (min 3, never padded)
+    assert pl["videos"] and all(v["format"] == "funny" for v in pl["videos"])                         # they become standalones instead
 
 
 def test_funny_and_continuous_have_no_ranking_badge_and_ranking_does(tmp_path):
@@ -220,21 +221,23 @@ def run_all(proj, rid, words_fn=lambda media, t: []):
 
 def test_passed_videos_go_to_the_matching_format_folder_with_readable_names(proj, produced):
     recs = run_all(proj, produced)
-    base = proj / "ready-for-drafts" / SID / produced
+    base = proj / "approved_clips"
     assert all(r["status"] == "ready_for_draft_transfer" for r in recs), [(r["stem"], r["needs_review_reasons"]) for r in recs]
     names = {r["format"]: r["stem"] for r in recs}
     assert names["ranking"].startswith("R01-test-moments") and names["funny"] == "F01-quick-laugh-moment" and names["continuous"] == "C01-long-scene-plays-out"
-    for fmt, folder in (("ranking", "rankings"), ("funny", "funny-moments"), ("continuous", "continuous-moments")):
+    for fmt, folder in (("ranking", "rankings"), ("funny", "standalone/funny"), ("continuous", "standalone/continuous")):
         stem = names[fmt]
-        d = base / folder / stem
+        d = base / folder / produced / stem
         for f in (f"{stem}.mp4", "cover.jpg", "caption.txt", "manifest.json", "qa.json"):
             assert (d / f).is_file(), (d, f)
         m = json.loads((d / "manifest.json").read_text())
         assert m["status"] == "ready_for_draft_transfer" and m["transfer"]["authorized"] is False and m["public_publish"] is False and m["source_sha256"]
         assert (m["rank_count"] == 4) == (fmt == "ranking") and m["accent_color"] and m["manually_reviewed"] is False
+        for k in ("output_filename", "source_timecodes", "hook_used", "payoff", "editing_decisions", "final_runtime_sec", "candidate_ids", "intentional_reuse", "qa_result"):
+            assert k in m, k                                                                          # the manifest the rules require
     assert not any(c.isdigit() and len(c) > 8 for c in names.values())                                  # readable names, no hash-only filenames
     assert all(len(registry.load(proj)["clips"]) >= 6 for _ in [0])                                     # moments registered as used
-    pr = json.loads((base / "rankings" / names["ranking"] / "manifest.json").read_text())
+    pr = json.loads((base / "rankings" / produced / names["ranking"] / "manifest.json").read_text())
     assert len({c for c in pr["text_colors"].values()}) == 1                                            # one accent color per video
 
 
@@ -243,7 +246,7 @@ def test_dashboard_links_every_finished_video(proj, produced):
     RunStatus(proj / "runs" / produced).update(segments_detected=6)
     idx = CF.build_dashboard(produced, proj)
     html = idx.read_text()
-    assert idx.parent == proj / "ready-for-drafts" / SID / produced and "http://" not in html and "https://" not in html and "src=\"data:image/jpeg;base64," in html
+    assert idx.parent == proj / "approved_clips" / "_reports" / SID / produced and "http://" not in html and "https://" not in html and "src=\"data:image/jpeg;base64," in html
     for r in recs:
         link = f'href="{__import__("os").path.relpath(proj / r["final"], idx.parent)}"'
         assert link in html and (idx.parent / __import__("os").path.relpath(proj / r["final"], idx.parent)).resolve().is_file()
@@ -259,8 +262,9 @@ def test_sloppy_cuts_fail_qa_and_go_to_needs_review(proj, produced):
     assert recs and all(r["status"] == "needs_review" for r in recs)
     assert all(any("falls inside the word" in x for x in r["needs_review_reasons"]) for r in recs)
     for r in recs:
-        assert (proj / "needs-review" / SID / produced / r["stem"] / f"{r['stem']}.mp4").is_file()
-    assert not (proj / "ready-for-drafts" / SID / produced / "rankings").exists()
+        assert (proj / "needs-review" / produced / r["stem"] / f"{r['stem']}.mp4").is_file()
+        assert "falls inside the word" in (proj / "needs-review" / produced / r["stem"] / "FAILURE.txt").read_text()   # written failure reason
+    assert not (proj / "approved_clips" / "rankings" / produced).exists()
     assert not [c for c in registry.load(proj)["clips"] if c["run_id"] == produced]                    # nothing was registered as used
 
 
@@ -280,7 +284,7 @@ def test_cleanup_preserves_sources_catalog_thumbnails_and_finals(proj, produced)
     lib = proj / "source_library" / SID
     keep = [lib / "master.mp4", lib / "source.json", lib / "transcript" / "transcript.json", lib / "analysis" / "segments.csv", lib / "analysis" / "timeline.json",
             lib / "analysis" / "candidates.json", lib / "analysis" / "thumbnails" / "S001.jpg", proj / "registry" / "used_clips.json",
-            *[proj / r["final"] for r in recs], proj / "ready-for-drafts" / SID / produced / "index.html", proj / "runs" / produced / "status.json"]
+            *[proj / r["final"] for r in recs], proj / "approved_clips" / "_reports" / SID / produced / "index.html", proj / "runs" / produced / "status.json"]
     before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in keep}
     scratch = proj / "runs" / produced / "working" / "rankings" / "scratch.tmp"
     scratch.write_bytes(b"x" * 1000)
@@ -315,3 +319,75 @@ def test_legacy_root_files_are_moved_into_the_clean_layout(tmp_path):
     assert len(moved) == 5 and (lib / "transcript" / "transcript.json").is_file() and (lib / "analysis" / "signals.json").is_file()
     assert (lib / "analysis" / "thumbnails" / "_sampled" / "a.jpg").is_file() and not (lib / "transcript.json").exists()
     assert layout.migrate(lib) == []                                                                       # idempotent, never overwrites
+
+
+# ---- new policy: honest counts, ledger, mandatory passes, reuse, duplicate exports, intake -----------------------------
+def test_partition_keeps_every_honest_entry_and_never_pads():
+    assert CF._partition(2) == [-2] and CF._partition(0) == []
+    assert CF._partition(3) == [3] and CF._partition(4) == [4] and CF._partition(7) == [7] and CF._partition(10) == [10]
+    p = CF._partition(11)                                           # only the header's technical limit splits a theme, into balanced parts >= 3
+    assert sum(p) == 11 and all(3 <= x <= 10 for x in p) and max(p) - min(p) <= 1
+
+
+def test_three_honest_moments_make_a_ranking_and_the_ledger_records_both_passes(proj):
+    analyzed(proj)
+    segs = [c for c in FA.load_candidates(SID, proj)["candidates"] if c["duration"] >= 5]
+    spec = {c["id"]: ("ranking", n, "Tiny Group") for c, n in zip(segs[:3], ["One Two Three", "Four Five Six", "Seven Eight Nine"])}
+    spec[segs[3]["id"]] = ("funny", "Quick Laugh Moment", None)
+    review(proj, spec)
+    rid = CF.start(SID, proj).name
+    pl = CF.build_plan(rid, proj)
+    assert [len(v["moments"]) for v in pl["videos"] if v["format"] == "ranking"] == [3]                # a Top 3 is a valid ranking
+    led = json.loads((proj / "runs" / rid / "candidates" / "ledger.json").read_text())
+    assert led["passes"]["ranking_pass"]["videos"] == ["R01"] and led["passes"]["standalone_pass"]["videos"] == ["F01"]
+    assert len(led["candidates"]) == len(FA.load_candidates(SID, proj)["candidates"])                   # every candidate is accounted for
+    assert all(r["used_in"] or r["not_used_because"] for r in led["candidates"])
+    assert (proj / "runs" / rid / "projects" / "rankings").is_dir() and any((proj / "runs" / rid / "projects" / "standalone").iterdir())
+
+
+def test_a_missing_format_is_explained_in_the_ledger(proj):
+    analyzed(proj)
+    segs = [c for c in FA.load_candidates(SID, proj)["candidates"] if c["duration"] >= 5]
+    review(proj, {segs[0]["id"]: ("funny", "Quick Laugh Moment", None)})
+    rid = CF.start(SID, proj).name
+    CF.build_plan(rid, proj)
+    led = json.loads((proj / "runs" / rid / "candidates" / "ledger.json").read_text())
+    assert led["passes"]["ranking_pass"]["none_because"] and led["passes"]["standalone_pass"]["videos"] == ["F01"]
+
+
+def test_recorded_reuse_gives_a_ranking_entry_a_materially_different_standalone(proj):
+    analyzed(proj)
+    segs = [c for c in FA.load_candidates(SID, proj)["candidates"] if c["duration"] >= 5]
+    spec = {c["id"]: ("ranking", n, "Test Moments") for c, n in zip(segs[:3], ["Wait What Happened", "He Really Did It", "No Way Moment"])}
+    review(proj, spec)
+    data = FA.load_candidates(SID, proj)
+    c0 = data["candidates"][[c["id"] for c in data["candidates"]].index(segs[0]["id"])]
+    c0["review"]["standalone_reuse"] = {"title": "Whole Scene Plays Out", "reason": "full scene with context", "use_start": c0["start"], "use_end": min(c0["end"] + 0.6 * (c0["end"] - c0["start"]), 69.0)}
+    FA._write(proj / "source_library" / SID / "analysis" / "candidates.json", data)
+    rid = CF.start(SID, proj).name
+    pl = CF.build_plan(rid, proj)
+    reused = [v for v in pl["videos"] if v.get("reuse")]
+    assert len(reused) == 1 and reused[0]["reuse"]["of"] == "R01" and reused[0]["format"] == "funny", pl["rejected"]
+    led = json.loads((proj / "runs" / rid / "candidates" / "ledger.json").read_text())
+    assert next(r for r in led["candidates"] if r["id"] == segs[0]["id"])["intentional_reuse"] is True
+
+
+def test_duplicate_exports_are_detected_by_content_hash(tmp_path):
+    CF.exports_register(tmp_path, "abc", "R01", "run1", "approved_clips/rankings/run1/R01-x/R01-x.mp4", [[0, 5]])
+    assert CF.exports_find(tmp_path, "abc", "R02", "run2") is None                    # the file is gone: nothing to collide with
+    f = tmp_path / "approved_clips/rankings/run1/R01-x/R01-x.mp4"
+    f.parent.mkdir(parents=True)
+    f.write_bytes(b"x")
+    assert CF.exports_find(tmp_path, "abc", "R02", "run2") == "approved_clips/rankings/run1/R01-x/R01-x.mp4"
+    assert CF.exports_find(tmp_path, "abc", "R01", "run1") is None                    # re-finalizing the same output is not a duplicate
+    assert CF.exports_find(tmp_path, "zzz", "R02", "run2") is None
+
+
+def test_intake_pairs_video_and_audio_from_sourcevideo(tmp_path):
+    from clipagent import intake
+    inbox = tmp_path / "sourcevideo"
+    inbox.mkdir()
+    for n in ("show.mp4", "show.m4a", ".DS_Store", "notes.txt"):
+        (inbox / n).write_bytes(b"x")
+    found = intake.scan(tmp_path)
+    assert len(found) == 1 and found[0]["video"].name == "show.mp4" and found[0]["audio"].name == "show.m4a" and found[0]["where"] == "sourcevideo"

@@ -204,13 +204,13 @@ def reg_root(tmp_path):
     return tmp_path
 
 
-@pytest.mark.parametrize("start,end", [(100, 110), (102, 108), (95, 115), (105, 120), (90, 102), (111, 118), (92, 98), (108, 130)])
-def test_used_and_near_boundary_moments_are_rejected(reg_root, start, end):
+@pytest.mark.parametrize("start,end", [(100, 110), (102, 108), (95, 115), (105, 120), (90, 102), (108, 130)])
+def test_used_and_overlapping_moments_are_rejected(reg_root, start, end):
     assert REG.conflicts("a" * 64, start, end, root=reg_root)
 
 
 def test_different_unused_moments_from_same_source_stay_eligible(reg_root):
-    for start, end in ((0, 20), (130, 150), (116.5, 130), (50, 94)):
+    for start, end in ((0, 20), (130, 150), (116.5, 130), (50, 94), (111, 118), (92, 98), (110, 125), (90, 100)):   # independent neighbours that merely touch/near a used scene are allowed
         assert REG.conflicts("a" * 64, start, end, root=reg_root) == []
     assert REG.conflicts("b" * 64, 100, 110, root=reg_root) == []              # same timestamps, different source, different text
 

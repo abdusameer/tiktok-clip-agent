@@ -53,8 +53,12 @@ def validate_headline(headline: str) -> None:
 def validate_entries(entries: list[dict], expected_ranks: list[int] | None = None) -> list[dict]:
     """entries: [{'rank': int, 'title': str}]. Ranks must be unique ints; titles unique and valid."""
     lim = style.load()["limits"]
-    if not lim["min_ranks"] <= len(entries) <= lim["max_ranks"]:
-        raise TitleError(f"need {lim['min_ranks']}-{lim['max_ranks']} ranked moments, got {len(entries)}")
+    if len(entries) < lim["min_ranks"]:
+        raise TitleError(f"a ranking needs at least {lim['min_ranks']} honest entries, got {len(entries)} (never padded; make it a standalone instead)")
+    if lim.get("max_ranks") and len(entries) > lim["max_ranks"]:
+        raise TitleError(f"at most {lim['max_ranks']} ranked moments, got {len(entries)}")
+    if len(entries) > lim.get("layout_max_ranks", len(entries)):
+        raise TitleError(f"the countdown header fits at most {lim['layout_max_ranks']} chips, got {len(entries)}; split into balanced parts")
     ranks = []
     for e in entries:
         if set(e) != {"rank", "title"}:

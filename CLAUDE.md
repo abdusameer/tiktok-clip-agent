@@ -17,7 +17,7 @@ Do not install or modify anything yet. Only inspect and report.
 ## Ranking video production
 - `/make-rankings` is the standard production workflow; detailed steps live in `.claude/skills/make-rankings/SKILL.md`, not here.
 - `config/ranking_style.json` is the source of truth for the approved visual style.
-- Every finished video has 4-5 ranks, never more than five. Rank and title are stored separately and the rank always matches badge, position and countdown.
+- Editorial policy (durations, ranking counts, standalone rules, reuse, workflow) lives ONLY in `CONTENT_EDITING_RULES.md`; follow it and do not restate it elsewhere. Runtime never decides quality; a ranking has as many honest entries as fit its theme (minimum 3, never padded). Rank and title are stored separately and the rank always matches badge, position and countdown.
 - Profanity stays uncensored unless I request otherwise.
 - Public publishing always requires my explicit approval.
 - `/deleteandcleanup <run-id>` previews, then (only on the exact phrase `DELETE RUN <run-id>`) moves a completed run's working files to the Trash and keeps the final MP4 under `finals/`; the procedure lives in its skill.

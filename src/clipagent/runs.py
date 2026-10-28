@@ -69,8 +69,8 @@ def combine(video: Path, audio: Path, out: Path, usage=None) -> Path:
     return out
 
 
-CONTENT_SUBDIRS = ("ingest", "segments/shortlisted-previews", "plan", "working/rankings", "working/funny-moments", "working/continuous-moments",
-                   "qa/reports", "qa/frames", "logs")
+CONTENT_SUBDIRS = ("ingest", "segments/shortlisted-previews", "plan", "candidates", "projects/rankings", "projects/standalone",
+                   "working/rankings", "working/funny-moments", "working/continuous-moments", "qa/reports", "qa/frames", "logs")
 
 
 def create_content_run(source_id: str, source_sha256: str, root: Path | None = None) -> Path:

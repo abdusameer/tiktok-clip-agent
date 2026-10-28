@@ -1,0 +1,622 @@
+[
+  {
+    "sha256": "0ccd5e2a0991a879fed826ec379dc18e42a5bb163d09b5484151736aef996481",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "R01",
+    "path": "needs-review/20261027-202954-d68748d7/R01-loudest-streamer-screams/R01-loudest-streamer-screams.mp4",
+    "source_timecodes": [
+      [
+        202.65,
+        217.2
+      ],
+      [
+        62.53,
+        69.13
+      ],
+      [
+        375.43,
+        381.47
+      ],
+      [
+        1016.8,
+        1031.57
+      ]
+    ]
+  },
+  {
+    "sha256": "be681ef2226ead6d2d42f4849c9e78d3f78050bfe29c8f05f38e8a1e36006a78",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "R02",
+    "path": "needs-review/20261027-202954-d68748d7/R02-pack-opening-reactions/R02-pack-opening-reactions.mp4",
+    "source_timecodes": [
+      [
+        273.67,
+        287.48
+      ],
+      [
+        436.07,
+        442.83
+      ],
+      [
+        477.48,
+        486.0
+      ]
+    ]
+  },
+  {
+    "sha256": "b089f0765529de7ace8c4949470911c8a1a53d0928841ce0beefbcacddbb828f",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "F01",
+    "path": "needs-review/20261027-202954-d68748d7/F01-tickling-little-brother-s-feet/F01-tickling-little-brother-s-feet.mp4",
+    "source_timecodes": [
+      [
+        242.17,
+        253.73
+      ]
+    ]
+  },
+  {
+    "sha256": "7c42b14bc771297e70e22a9cc7a7bc5a0997dbc9972523810f82c3bd9e0d2424",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "F02",
+    "path": "needs-review/20261027-202954-d68748d7/F02-wooden-box-surprise-scare/F02-wooden-box-surprise-scare.mp4",
+    "source_timecodes": [
+      [
+        789.22,
+        794.62
+      ]
+    ]
+  },
+  {
+    "sha256": "45ecfde0188fa40161dc10b760c8048dd81f9d65bc824d5b99d4082bed2773f3",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "C01",
+    "path": "approved_clips/standalone/continuous/20261027-202954-d68748d7/C01-is-that-tom-brady/C01-is-that-tom-brady.mp4",
+    "source_timecodes": [
+      [
+        128.38,
+        138.85
+      ]
+    ]
+  },
+  {
+    "sha256": "d5b28a5b9e362ef457aac406aa00acfc2c6993b41552cd822a386302befc7c38",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "C02",
+    "path": "needs-review/20261027-202954-d68748d7/C02-six-seven-challenge-chaos/C02-six-seven-challenge-chaos.mp4",
+    "source_timecodes": [
+      [
+        320.72,
+        349.3
+      ]
+    ]
+  },
+  {
+    "sha256": "faff10013707d4261aaa06710bafaf2010d33a30ac9def1d073caefa46b53468",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "C03",
+    "path": "approved_clips/standalone/continuous/20261027-202954-d68748d7/C03-how-many-days-played/C03-how-many-days-played.mp4",
+    "source_timecodes": [
+      [
+        538.87,
+        578.52
+      ]
+    ]
+  },
+  {
+    "sha256": "efc5ca415b566291a44c2b8c695c879ae06365fc8981ac77b543cab5292593cd",
+    "run_id": "20261027-202954-d68748d7",
+    "video_id": "C04",
+    "path": "needs-review/20261027-202954-d68748d7/C04-bacon-soda-taste-test/C04-bacon-soda-taste-test.mp4",
+    "source_timecodes": [
+      [
+        644.13,
+        676.12
+      ]
+    ]
+  },
+  {
+    "sha256": "cbf525d07a499dabc699c1dc0a3b92a3ebfb3264fd2b1a74b5f561814eb2fe10",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "R01",
+    "path": "approved_clips/rankings/20261027-212347-d68748d7/R01-loudest-streamer-screams/R01-loudest-streamer-screams.mp4",
+    "source_timecodes": [
+      [
+        193.84,
+        217.2
+      ],
+      [
+        54.78,
+        69.13
+      ],
+      [
+        367.0,
+        381.47
+      ],
+      [
+        1016.8,
+        1036.42
+      ]
+    ]
+  },
+  {
+    "sha256": "7638fd59a277b3d10a639c703bb44fd792e87a0b19e8187ad5901de0c764fb22",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "R02",
+    "path": "needs-review/20261027-212347-d68748d7/R02-pack-opening-reactions/R02-pack-opening-reactions.mp4",
+    "source_timecodes": [
+      [
+        273.15,
+        287.48
+      ],
+      [
+        428.13,
+        442.83
+      ],
+      [
+        476.0,
+        486.0
+      ]
+    ]
+  },
+  {
+    "sha256": "067e80e1ad07757bafb8af0d9baacee31c9512a0e4c57c77753643d45ea48b0e",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "R03",
+    "path": "approved_clips/rankings/20261027-212347-d68748d7/R03-weirdest-streamer-antics/R03-weirdest-streamer-antics.mp4",
+    "source_timecodes": [
+      [
+        779.65,
+        789.4
+      ],
+      [
+        719.95,
+        736.7
+      ],
+      [
+        349.3,
+        367.0
+      ],
+      [
+        627.95,
+        643.71
+      ]
+    ]
+  },
+  {
+    "sha256": "b7ad8b1dc628f6e0bc0fb0da7f4e18e04c7f34b84edd63fff27d978a34836f89",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "R04",
+    "path": "needs-review/20261027-212347-d68748d7/R04-awkward-dating-moments/R04-awkward-dating-moments.mp4",
+    "source_timecodes": [
+      [
+        990.35,
+        1006.8
+      ],
+      [
+        957.98,
+        963.85
+      ],
+      [
+        872.1,
+        905.03
+      ]
+    ]
+  },
+  {
+    "sha256": "cd1a281d604f128ef97d25e4943caffad71ab9ca03e5793a7f3ad421f9632454",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F01",
+    "path": "approved_clips/standalone/funny/20261027-212347-d68748d7/F01-cut-is-actually-clean/F01-cut-is-actually-clean.mp4",
+    "source_timecodes": [
+      [
+        29.89,
+        40.25
+      ]
+    ]
+  },
+  {
+    "sha256": "a13fe314a261a3d39adcfc245779d3d55f83cd82e7ee67549e39abe725af7edc",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F02",
+    "path": "approved_clips/standalone/funny/20261027-212347-d68748d7/F02-chat-are-you-a-miner/F02-chat-are-you-a-miner.mp4",
+    "source_timecodes": [
+      [
+        85.77,
+        99.67
+      ]
+    ]
+  },
+  {
+    "sha256": "770c9a5d290fbfa894a3e0718d565711249e53cbedfc03058661320ff0f7c3fb",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F03",
+    "path": "needs-review/20261027-212347-d68748d7/F03-bricked-up-or-soft/F03-bricked-up-or-soft.mp4",
+    "source_timecodes": [
+      [
+        219.37,
+        223.78
+      ]
+    ]
+  },
+  {
+    "sha256": "b8bb60e66a34dd371df73b5d5e5252cb98f83ae44de0f76403a9fedd66ca0fbb",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F04",
+    "path": "needs-review/20261027-212347-d68748d7/F04-tickling-little-brother-s-feet/F04-tickling-little-brother-s-feet.mp4",
+    "source_timecodes": [
+      [
+        240.35,
+        255.07
+      ]
+    ]
+  },
+  {
+    "sha256": "8fd1ee87bb5ab960038bcae6e7a8c2fdc6b771f065053d026e82e5b4b6cd01f3",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F05",
+    "path": "approved_clips/standalone/funny/20261027-212347-d68748d7/F05-jynxzi-s-chat-has-no-chill/F05-jynxzi-s-chat-has-no-chill.mp4",
+    "source_timecodes": [
+      [
+        467.12,
+        478.3
+      ]
+    ]
+  },
+  {
+    "sha256": "3c0491de5124890e6979cf61abb9611e6f524b91fd558a85ef34b439f1e4e039",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F06",
+    "path": "needs-review/20261027-212347-d68748d7/F06-who-tf-is-ohio/F06-who-tf-is-ohio.mp4",
+    "source_timecodes": [
+      [
+        486.54,
+        502.0
+      ]
+    ]
+  },
+  {
+    "sha256": "8c1d26a9d953f94cb5c09b8c6322d3c2fbf27f933ed899c0d9caf8a9b511e6ff",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F07",
+    "path": "approved_clips/standalone/funny/20261027-212347-d68748d7/F07-wooden-box-surprise-scare/F07-wooden-box-surprise-scare.mp4",
+    "source_timecodes": [
+      [
+        788.8,
+        794.62
+      ]
+    ]
+  },
+  {
+    "sha256": "aaa110e16d151384ae8ae40c444ff2572629f4023e06e33a7bccef1e6f68e8f3",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "F08",
+    "path": "approved_clips/standalone/funny/20261027-212347-d68748d7/F08-that-s-not-even-a-question/F08-that-s-not-even-a-question.mp4",
+    "source_timecodes": [
+      [
+        905.03,
+        915.95
+      ]
+    ]
+  },
+  {
+    "sha256": "4372830e3f2a6b1addd455e9f997f7724c148bdd7b0bee9bf4a41d9044116fc6",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C01",
+    "path": "needs-review/20261027-212347-d68748d7/C01-fun-sized-johnsons-and-grenades/C01-fun-sized-johnsons-and-grenades.mp4",
+    "source_timecodes": [
+      [
+        2.86,
+        30.99
+      ]
+    ]
+  },
+  {
+    "sha256": "ca6b04c5ad1ae5010e9f659e239bc50f8306eb5a0a3d59a258ff34a9a79affca",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C02",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C02-never-drank-never-jerked-off/C02-never-drank-never-jerked-off.mp4",
+    "source_timecodes": [
+      [
+        69.13,
+        85.27
+      ]
+    ]
+  },
+  {
+    "sha256": "41b18fb6d38d527383a7f24599e2fc5a91514ff28069baf7b80fc3376fd21329",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C03",
+    "path": "needs-review/20261027-212347-d68748d7/C03-face-of-a-3v1-clutch/C03-face-of-a-3v1-clutch.mp4",
+    "source_timecodes": [
+      [
+        99.53,
+        128.38
+      ]
+    ]
+  },
+  {
+    "sha256": "9bf45b888b4779ed33f94479115431a164e649dcd74b2dffbca8e49ac89b4999",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C04",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C04-singing-wildly-nobody-can-hear/C04-singing-wildly-nobody-can-hear.mp4",
+    "source_timecodes": [
+      [
+        157.6,
+        193.3
+      ]
+    ]
+  },
+  {
+    "sha256": "f8744b178a7b223ac4b642c3435e6534b81b8bdbcdf035f989b6c0a26b045b84",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C05",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C05-mod-muted-the-music/C05-mod-muted-the-music.mp4",
+    "source_timecodes": [
+      [
+        222.14,
+        242.87
+      ]
+    ]
+  },
+  {
+    "sha256": "b83c25445f260ad1f44f8f2866e8ef9be67fd7ad4ff2fd90c5b7e847adc4e2e8",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C06",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C06-only-ever-fit-cheetos/C06-only-ever-fit-cheetos.mp4",
+    "source_timecodes": [
+      [
+        257.18,
+        273.9
+      ]
+    ]
+  },
+  {
+    "sha256": "e48bafdd29dcae27800b68879f54ceebb0e558ea36ad5748997b1272688f2eef",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C07",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C07-six-seven-challenge-chaos/C07-six-seven-challenge-chaos.mp4",
+    "source_timecodes": [
+      [
+        320.72,
+        347.2
+      ]
+    ]
+  },
+  {
+    "sha256": "909f9da2b6760d76ac320e605fc1cab728fe398cc40068c0dd7c625d5a4b2848",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C08",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C08-thinking-about-being-gay/C08-thinking-about-being-gay.mp4",
+    "source_timecodes": [
+      [
+        381.47,
+        428.13
+      ]
+    ]
+  },
+  {
+    "sha256": "b228712661e905d47fe66225fcb74cdcb58f37546e9fe29b0035d1ba9b4bc3ac",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C09",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C09-betting-on-a-staircase-flanker/C09-betting-on-a-staircase-flanker.mp4",
+    "source_timecodes": [
+      [
+        443.62,
+        467.12
+      ]
+    ]
+  },
+  {
+    "sha256": "4ed0db4ba62182725b920bc1b3adc5e4d9b3ee547efbadd38cd97597eb953696",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C10",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C10-least-obvious-clip-farm/C10-least-obvious-clip-farm.mp4",
+    "source_timecodes": [
+      [
+        520.07,
+        538.87
+      ]
+    ]
+  },
+  {
+    "sha256": "3903ab2015f204fcc2f3faf369f7a817a8da271cf6cc231c2aae65ba830485ea",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C11",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C11-nobody-knows-you-buddy/C11-nobody-knows-you-buddy.mp4",
+    "source_timecodes": [
+      [
+        579.3,
+        627.95
+      ]
+    ]
+  },
+  {
+    "sha256": "8b53e9704395e4419cc6d106b8e482a7cc2985c0746f445915fdbb6577a1445f",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C12",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C12-bacon-soda-taste-test/C12-bacon-soda-taste-test.mp4",
+    "source_timecodes": [
+      [
+        644.13,
+        676.12
+      ]
+    ]
+  },
+  {
+    "sha256": "270c64b49731bd0cd17b7a8198879a3e55518757fb6d7adca1c6f02d3697186e",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C13",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C13-marvel-universe-looking-at-me/C13-marvel-universe-looking-at-me.mp4",
+    "source_timecodes": [
+      [
+        754.88,
+        774.22
+      ]
+    ]
+  },
+  {
+    "sha256": "e03f935f7f1fe2745f92bdcbc7e4cd38cae43ec045a4ca1ff05707494b2fd9ff",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C14",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C14-sketch-will-push-me-off/C14-sketch-will-push-me-off.mp4",
+    "source_timecodes": [
+      [
+        794.62,
+        821.62
+      ]
+    ]
+  },
+  {
+    "sha256": "aaf119245cf8d3e84aa1f1584e9e409c9ac2cbc5ad2a2105dd9ccdf45bcb8579",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C15",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C15-not-the-only-thing-pink/C15-not-the-only-thing-pink.mp4",
+    "source_timecodes": [
+      [
+        855.78,
+        871.42
+      ]
+    ]
+  },
+  {
+    "sha256": "a2aa75d8fde4ee201554477f6dd6d354b4199f4480397243e169cae922d9e65d",
+    "run_id": "20261027-212347-d68748d7",
+    "video_id": "C16",
+    "path": "approved_clips/standalone/continuous/20261027-212347-d68748d7/C16-leaping-over-the-table/C16-leaping-over-the-table.mp4",
+    "source_timecodes": [
+      [
+        915.95,
+        937.17
+      ]
+    ]
+  },
+  {
+    "sha256": "aa9ad0451f9293a71c0851007177a40d296f519f65cee010040e4c7899c5dec6",
+    "run_id": "20261028-000531-d68748d7",
+    "video_id": "R01",
+    "path": "approved_clips/rankings/20261028-000531-d68748d7/R01-awkward-dating-moments/R01-awkward-dating-moments.mp4",
+    "source_timecodes": [
+      [
+        990.35,
+        1006.8
+      ],
+      [
+        957.98,
+        963.85
+      ],
+      [
+        872.1,
+        905.03
+      ]
+    ]
+  },
+  {
+    "sha256": "51e63f17050f6b3bcf07e73d8f8406b2f53d74c332d2ef5a46e7e2d6669db7e4",
+    "run_id": "20261028-000531-d68748d7",
+    "video_id": "F01",
+    "path": "approved_clips/standalone/funny/20261028-000531-d68748d7/F01-dog-food-pack-promise/F01-dog-food-pack-promise.mp4",
+    "source_timecodes": [
+      [
+        428.13,
+        442.83
+      ]
+    ]
+  },
+  {
+    "sha256": "a07337974f475f7b7d49756f60dc1ef63481d3a12fad557ff5d15f4010c3a4d8",
+    "run_id": "20261028-000531-d68748d7",
+    "video_id": "F02",
+    "path": "approved_clips/standalone/funny/20261028-000531-d68748d7/F02-who-tf-is-ohio/F02-who-tf-is-ohio.mp4",
+    "source_timecodes": [
+      [
+        487.92,
+        501.82
+      ]
+    ]
+  },
+  {
+    "sha256": "3a08fd07061be3d59dcdb68cad6493018dbbed3fcd89570739bb2b9b2fa2a46b",
+    "run_id": "20261028-001734-d68748d7",
+    "video_id": "F01",
+    "path": "approved_clips/standalone/funny/20261028-001734-d68748d7/F01-bricked-up-or-soft/F01-bricked-up-or-soft.mp4",
+    "source_timecodes": [
+      [
+        219.37,
+        222.14
+      ]
+    ]
+  },
+  {
+    "sha256": "188141290f21871e9d159d7de60a1894d8115f59b98363e646422b49ab360d13",
+    "run_id": "20261028-001734-d68748d7",
+    "video_id": "F02",
+    "path": "needs-review/20261028-001734-d68748d7/F02-tickling-little-brother-s-feet/F02-tickling-little-brother-s-feet.mp4",
+    "source_timecodes": [
+      [
+        241.87,
+        256.55
+      ]
+    ]
+  },
+  {
+    "sha256": "be8535c1ce874863f4dc94c8370a96c08e91ca9a88ef63c135444c3aedd35ec3",
+    "run_id": "20261028-001734-d68748d7",
+    "video_id": "F03",
+    "path": "approved_clips/standalone/funny/20261028-001734-d68748d7/F03-not-really-pack-luck/F03-not-really-pack-luck.mp4",
+    "source_timecodes": [
+      [
+        273.15,
+        287.48
+      ]
+    ]
+  },
+  {
+    "sha256": "96532cb1b0eea2fe493af83237a1d56ef6e49d18cab5fa76a5841324e1f4d9d7",
+    "run_id": "20261028-001734-d68748d7",
+    "video_id": "F04",
+    "path": "approved_clips/standalone/funny/20261028-001734-d68748d7/F04-harry-kane-walkout/F04-harry-kane-walkout.mp4",
+    "source_timecodes": [
+      [
+        478.3,
+        486.0
+      ]
+    ]
+  },
+  {
+    "sha256": "42b53b4d94964fe4b1a82bdbdaf4688badafe5434c8672b44561d4b763a5654f",
+    "run_id": "20261028-001734-d68748d7",
+    "video_id": "C01",
+    "path": "approved_clips/standalone/continuous/20261028-001734-d68748d7/C01-fun-sized-johnsons-and-grenades/C01-fun-sized-johnsons-and-grenades.mp4",
+    "source_timecodes": [
+      [
+        2.86,
+        29.89
+      ]
+    ]
+  },
+  {
+    "sha256": "dadab4f04dcf91b6a583203c1089186ef3449d8c1ac1b06983876126434d1114",
+    "run_id": "20261028-001734-d68748d7",
+    "video_id": "C02",
+    "path": "approved_clips/standalone/continuous/20261028-001734-d68748d7/C02-face-of-a-3v1-clutch/C02-face-of-a-3v1-clutch.mp4",
+    "source_timecodes": [
+      [
+        99.67,
+        128.38
+      ]
+    ]
+  },
+  {
+    "sha256": "6e34ec7846911f5c099c9400c2cc1b0b22ff3fd4d076c5a76f65f9c12442f4f3",
+    "run_id": "20261028-045922-d68748d7",
+    "video_id": "F01",
+    "path": "approved_clips/standalone/funny/20261028-045922-d68748d7/F01-tickling-little-brother-s-feet/F01-tickling-little-brother-s-feet.mp4",
+    "source_timecodes": [
+      [
+        241.87,
+        253.41
+      ]
+    ]
+  }
+]

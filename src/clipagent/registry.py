@@ -12,8 +12,8 @@ from pathlib import Path
 from . import config
 
 REJECTED = "rejected_by_user"
-MIN_OVERLAP_SEC = 0.25
-BOUNDARY_SEC = 5.0          # a moment starting/ending within ~5 s of a used exchange is the same exchange
+MIN_OVERLAP_SEC = 1.0         # audio shared with a used moment beyond this is a real overlap (<= 1 s is the word straddling a compilation cut)
+BOUNDARY_SEC = 0.0          # adjacency is NOT a conflict: independent scenes that touch at a clip boundary are allowed (events decide, not distance); only real overlap blocks
 SIMILAR = 0.6               # transcript sketch similarity treated as the same moment
 
 
@@ -98,7 +98,7 @@ def conflicts(source_sha256: str, start: float, end: float, text_sha256: str | N
         if c["source_sha256"] == source_sha256:
             if min(end, c["end"]) - max(start, c["start"]) > MIN_OVERLAP_SEC:
                 out.append(f"overlaps used moment {c['title']!r} (run {c['run_id']})")
-            elif start < c["end"] + BOUNDARY_SEC and end > c["start"] - BOUNDARY_SEC:
+            elif BOUNDARY_SEC > 0 and start < c["end"] + BOUNDARY_SEC and end > c["start"] - BOUNDARY_SEC:
                 out.append(f"within {BOUNDARY_SEC:g}s of used moment {c['title']!r} (run {c['run_id']})")
         if text_sha256 and c.get("transcript_text_sha256") == text_sha256:
             out.append(f"same transcript as used moment {c['title']!r} (run {c['run_id']})")
@@ -106,7 +106,8 @@ def conflicts(source_sha256: str, start: float, end: float, text_sha256: str | N
             out.append(f"transcript substantially similar to used moment {c['title']!r} (run {c['run_id']})")
     for r in load_reservations(root)["reservations"]:
         if r["status"] == "active" and r["run_id"] != ignore_run and r["source_sha256"] == source_sha256 \
-                and start < r["end"] + BOUNDARY_SEC and end > r["start"] - BOUNDARY_SEC:
+                and (min(end, r["end"]) - max(start, r["start"]) > MIN_OVERLAP_SEC
+                     or (BOUNDARY_SEC > 0 and start < r["end"] + BOUNDARY_SEC and end > r["start"] - BOUNDARY_SEC)):
             out.append(f"reserved by active run {r['run_id']}")
     return out
 

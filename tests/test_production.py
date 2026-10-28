@@ -91,7 +91,7 @@ def test_plan_accepts_standalone_and_has_no_video_cap():
 
 def test_plan_rejects_thin_or_malformed_standalone():
     assert P.validate([standalone(dur=5.0)]).ok and P.validate([standalone(dur=90.0)]).ok     # one complete scene: short or long
-    assert any("under 5s" in w for w in P.validate([standalone(dur=3.0)]).warnings)           # <5 s only if completely understandable
+    assert not P.validate([standalone(dur=3.0)]).warnings and not P.validate([standalone(dur=240.0)]).warnings   # runtime never warns
     two = standalone()
     two["moments"].append({"rank": 2, "title": "Other Moment Here", "start": 50, "end": 70, "verified": True})
     assert any("exactly one" in e for e in P.validate([two]).errors)

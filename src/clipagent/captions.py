@@ -95,11 +95,11 @@ def decode_moment(media: Path, start: float, end: float, model_name: str = "medi
     import subprocess
 
     import numpy as np
-    from faster_whisper import WhisperModel
+    from . import models
     raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(start - pad, 0)}", "-to", f"{end + pad}", "-i", str(media), "-ac", "1", "-ar", "16000",
                           "-f", "f32le", "-"], capture_output=True).stdout
     audio = np.frombuffer(raw, dtype=np.float32)
-    model = WhisperModel(model_name, device="cpu", compute_type="int8")
+    model = models.whisper(model_name)
     res = []
     for beam in (1, 5):
         segs, _ = model.transcribe(audio, beam_size=beam, word_timestamps=True, language="en", condition_on_previous_text=False)
